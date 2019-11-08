@@ -1,48 +1,33 @@
-# From https://github.com/yueruchen/sppnet-pytorch
 
 import math
 
-##############################################################################
-# 追加
 import torch
 import torch.nn as nn
-##############################################################################
 
-def spatial_pyramid_pool(self,previous_conv, num_sample, previous_conv_size, out_pool_size):
+def spatial_pyramid_pool(self, x, pooling_win):
     '''
-    previous_conv: a tensor vector of previous convolution layer
-    num_sample: an int number of image in the batch
-    previous_conv_size: an int vector [height, width] of the matrix features size of previous convolution layer
-    out_pool_size: a int vector of expected output size of max pooling layer
+    x: a tensor vector of last convolution layer
+    pooling_win: a int vector of pooling window size
 
     returns: a tensor vector with shape [1 x n] is the concentration of multi-level pooling
     '''
-    # print(previous_conv.size())
-    for i in range(len(out_pool_size)):
-        #print(previous_conv_size)
-        h_wid = int(math.ceil(previous_conv_size[0] / out_pool_size[i]))
-        w_wid = int(math.ceil(previous_conv_size[1] / out_pool_size[i]))
+    # (batch_size, channel, height, width)
+    BS, C, H, W = x.size()
 
-        ##############################################################################
-        # 追加
-        h_str = int(math.floor(previous_conv_size[0] / out_pool_size[i]))
-        w_str = int(math.floor(previous_conv_size[1] / out_pool_size[i]))
-        ##############################################################################
+    for i in range(len(pooling_win)):
 
-        h_pad = (h_wid*out_pool_size[i] - previous_conv_size[0] + 1)/2
-        w_pad = (w_wid*out_pool_size[i] - previous_conv_size[1] + 1)/2
+        kernel_size = math.ceil(H / pooling_win[i]), math.ceil(W / pooling_win[i])
+        # original paperではfloot
+        stride = math.ceil(H / pooling_win[i]), math.ceil(W / pooling_win[i])
+        #stride = math.floor(H / pooling_win[i]), math.floor(W / pooling_win[i])
+        padding = math.floor((kernel_size[0]*pooling_win[i] - H + 1)/2), \
+            math.floor((kernel_size[1]*pooling_win[i] - W + 1)/2)
 
-        ##############################################################################
-        # 変更
-        maxpool = nn.MaxPool2d((h_wid, w_wid), stride=(h_str, w_str), padding=(0,0))
-        #maxpool = nn.MaxPool2d((h_wid, w_wid), stride=(h_wid, w_wid), padding=(h_pad, w_pad))
-        ##############################################################################
+        maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=padding)
 
-        x = maxpool(previous_conv)
+        tensor = maxpool(x).view(BS,-1)
         if(i == 0):
-            spp = x.view(num_sample,-1)
-            # print("spp size:",spp.size())
+            spp = tensor
         else:
-            # print("size:",spp.size())
-            spp = torch.cat((spp,x.view(num_sample,-1)), 1)
+            spp = torch.cat((spp, tensor), dim=1)
     return spp
