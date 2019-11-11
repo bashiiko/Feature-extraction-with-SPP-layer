@@ -17,10 +17,10 @@ def spatial_pyramid_pool(self, x, pooling_win):
     for i in range(len(pooling_win)):
 
         kernel_size = math.ceil(H / pooling_win[i]), math.ceil(W / pooling_win[i])
-        # original paperではfloot
+        # original paperではflootだが，例えばH=W=11のときに4*4に分割できない
         stride = math.ceil(H / pooling_win[i]), math.ceil(W / pooling_win[i])
         #stride = math.floor(H / pooling_win[i]), math.floor(W / pooling_win[i])
-        padding = math.floor((kernel_size[0]*pooling_win[i] - H + 1)/2), \
+        padding = math.floor((kernel_size[0]*pooling_win[i] - H +1)/2), \
             math.floor((kernel_size[1]*pooling_win[i] - W + 1)/2)
 
         maxpool = nn.MaxPool2d(kernel_size=kernel_size, stride=stride, padding=padding)
